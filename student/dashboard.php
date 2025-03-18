@@ -17,9 +17,10 @@ $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Get enrolled courses
 $stmt = $conn->prepare("
-    SELECT ic.* FROM internship_courses ic
-    JOIN student_courses sc ON ic.course_id = sc.course_id
-    WHERE sc.student_id = ?
+    SELECT ic.*, e.status as enrollment_status 
+    FROM internship_courses ic
+    INNER JOIN enrollments e ON ic.course_id = e.course_id
+    WHERE e.student_id = ? AND e.status = 'active'
 ");
 $stmt->execute([$student['student_id']]);
 $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -106,7 +107,7 @@ try {
                                 <tr>
                                     <td><?= htmlspecialchars($course['course_code']) ?></td>
                                     <td><?= htmlspecialchars($course['course_name']) ?></td>
-                                    <td><span class="status-badge">Active</span></td>
+                                    <td><span class="status-badge"><?= htmlspecialchars($course['enrollment_status']) ?></span></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>

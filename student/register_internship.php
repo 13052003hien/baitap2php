@@ -15,19 +15,34 @@ $stmt = $conn->prepare("SELECT * FROM students WHERE user_id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Get available courses that the student hasn't registered for yet
+// Update query to get enrolled courses without internship registration
 $stmt = $conn->prepare("
     SELECT ic.* 
     FROM internship_courses ic
+    INNER JOIN enrollments e ON ic.course_id = e.course_id
     LEFT JOIN internship_details id ON ic.course_id = id.course_id 
         AND id.student_id = ?
-    WHERE id.id IS NULL
+    WHERE e.student_id = ? 
+    AND e.status = 'active'
+    AND id.id IS NULL
 ");
-$stmt->execute([$student['student_id']]);
-$available_courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$stmt->execute([$student['student_id'], $student['student_id']]);
+$enrolled_courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
+        // Verify enrollment first
+        $stmt = $conn->prepare("
+            SELECT 1 FROM enrollments 
+            WHERE student_id = ? AND course_id = ? AND status = 'active'
+        ");
+        $stmt->execute([$student['student_id'], $_POST['course_id']]);
+        if (!$stmt->fetch()) {
+            throw new Exception("You must be enrolled in this course to register for internship");
+        }
+
+        // Insert internship details
         $stmt = $conn->prepare("INSERT INTO internship_details 
             (student_id, course_id, company_name, company_address, industry, 
              supervisor_name, supervisor_phone, supervisor_email, start_date, 
@@ -35,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
             
         $stmt->execute([
-            $student['student_id'], // Use the fetched student_id
+            $student['student_id'],
             $_POST['course_id'],
             $_POST['company_name'],
             $_POST['company_address'],
@@ -49,13 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST['job_description']
         ]);
         
-        // Also enroll student in the course
-        $stmt = $conn->prepare("INSERT INTO student_courses (student_id, course_id, status) VALUES (?, ?, 'active')");
-        $stmt->execute([$student['student_id'], $_POST['course_id']]);
-        
         $message = "Internship registration submitted successfully!";
-    } catch (PDOException $e) {
-        $error = "Error submitting registration: " . $e->getMessage();
+    } catch (Exception $e) {
+        $error = $e->getMessage();
     }
 }
 ?>
@@ -77,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="content-wrapper">
             <div class="modern-form">
-                <?php if (empty($available_courses)): ?>
+                <?php if (empty($enrolled_courses)): ?>
                     <div class="empty-state">
                         <h2>No Available Courses</h2>
                         <p>You have already registered for all available internship courses.</p>
@@ -110,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <label>Select Course</label>
                                 <select name="course_id" required class="styled-select">
                                     <option value="">Choose a course...</option>
-                                    <?php foreach ($available_courses as $course): ?>
+                                    <?php foreach ($enrolled_courses as $course): ?>
                                         <option value="<?= $course['course_id'] ?>">
                                             <?= htmlspecialchars($course['course_code'] . ' - ' . $course['course_name']) ?>
                                         </option>
