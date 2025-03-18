@@ -1,0 +1,28 @@
+# Prevent directory listing
+Options -Indexes
+
+# Set default page
+DirectoryIndex index.php
+
+# Protect sensitive files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Redirect all requests to index.php if file/directory doesn't exist
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php [L,QSA]
+</IfModule>
+
+# Protect uploads directory
+<Directory "uploads">
+    Order deny,allow
+    Deny from all
+    <Files ~ "^.*\.(pdf|doc|docx|xls|xlsx)$">
+        Allow from all
+    </Files>
+</Directory>
