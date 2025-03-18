@@ -1,6 +1,10 @@
 {
+    "config": {
+        "vendor-dir": "vendor"
+    },
     "require": {
         "phpmailer/phpmailer": "^6.9",
-        "phpoffice/phpspreadsheet": "^4.1"
+        "phpoffice/phpspreadsheet": "^4.1",
+        "smalot/pdfparser": "^2.7"
     }
 }

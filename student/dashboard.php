@@ -71,6 +71,7 @@ try {
                 <a href="profile.php">My Profile</a>
                 <a href="register_internship.php">Register Internship</a>
                 <a href="upload_document.php">Upload Documents</a>
+                <a href="evaluate_cv.php">Evaluate CV</a>
             </div>
             <a href="../logout.php" class="btn-modern">Logout</a>
         </nav>
