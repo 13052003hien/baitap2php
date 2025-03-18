@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require '../config/database.php';
 session_start();
 
@@ -19,7 +20,12 @@ if (!$lecturer) {
     $error = "Lecturer profile not found. Please contact administrator.";
 } else {
     // Get lecturer's courses using lecturer_id
-    $stmt = $conn->prepare("SELECT * FROM internship_courses WHERE lecturer_id = ?");
+    $stmt = $conn->prepare("
+        SELECT c.*, 
+               (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.course_id) as student_count 
+        FROM internship_courses c 
+        WHERE c.lecturer_id = ?
+    ");
     $stmt->execute([$lecturer['lecturer_id']]);
     $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -66,11 +72,10 @@ if (!$lecturer) {
                                 <tr>
                                     <td><?= htmlspecialchars($course['course_code']) ?></td>
                                     <td><?= htmlspecialchars($course['course_name']) ?></td>
+                                    <td><?= $course['student_count'] ?> students</td>
                                     <td>
                                         <a href="view_students.php?course_id=<?= $course['course_id'] ?>" 
-                                           class="btn-link">View Students</a>
-                                    </td>
-                                    <td>
+                                           class="btn-link">Manage Students</a>
                                         <a href="edit_course.php?id=<?= $course['course_id'] ?>" 
                                            class="btn-link">Edit</a>
                                     </td>
